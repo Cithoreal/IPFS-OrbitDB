@@ -1,6 +1,5 @@
 import * as IPFS from 'ipfs-core'
 import OrbitDB from 'orbit-db'
-import ChildProcess from 'child_process'
 import fs from 'fs'
 
 //const ipfs = new IPFS({ host: 'localhost', port: '5001', protocol: 'http' })
@@ -11,30 +10,11 @@ const orbitdb = await OrbitDB.createInstance(ipfs)
 
 async function main () {
     const fileName = process.argv[2];
-    encryptFile(fileName)
-    const hash = await addToIPFS("encrypted.bin")
+    const hash = await addToIPFS(fileName)
     await addHashToDB(fileName,hash)
 
     ipfs.stop()
-    console.log("All done")
-    //close()
-}
 
-function encryptFile(fileName) {
-  const scriptPath = 'encryption.py'
-
-  const options = {
-    stdio: ['pipe', 'inherit', 'inherit'],
-    shell: true
-  }
-
-  const subprocess = ChildProcess.spawnSync('venv\\Scripts\\python.exe', [scriptPath, "-e", fileName], options)
-
-  if (subprocess.status !== 0) {
-    console.log('Failed to encrypt file')
-    process.exit(1)
-  }
-  console.log("done encrypting")
 }
 
 async function addToIPFS(filePath) {

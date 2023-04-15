@@ -1,6 +1,5 @@
 import * as IPFS from 'ipfs-core'
 import OrbitDB from "orbit-db";
-import ChildProcess from "child_process";
 import fs from "fs";
 
 //const ipfs = new IPFS({ host: 'localhost', port: '5001', protocol: 'http' })
@@ -25,12 +24,11 @@ async function main() {
 
   //save to file
   //var encryptedFileContent = value.value.toString('utf8')
-  fs.writeFile("encrypted.bin", data, (err) => {
+  fs.writeFile(fileName, data, (err) => {
     if (err) {
       console.log(err);
     }
     console.log("File saved");
-    decryptFile(fileName);
     ipfs.stop();
   });
 }
@@ -46,19 +44,5 @@ async function getFromOrbitDB(fileName) {
   return hash;
 }
 
-function decryptFile(fileName) {
-  const scriptPath = "encryption.py";
-
-  const options = {
-    stdio: ["pipe", "inherit", "inherit"],
-    shell: true,
-  };
-
-  const subprocess = ChildProcess.spawn(
-    "venv\\Scripts\\python.exe",
-    [scriptPath, "-d", fileName],
-    options
-  );
-}
 
 main();
