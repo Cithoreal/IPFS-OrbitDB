@@ -3,7 +3,9 @@ import OrbitDB from "orbit-db";
 import fs from "fs";
 
 const ipfs = await IPFS.create();
-const orbitdb = await OrbitDB.createInstance(ipfs);
+
+const options = {directory: 'C:\\Users\\cdica\\.orbitdb'}
+const orbitdb = await OrbitDB.createInstance(ipfs, options);
 
 async function main() {
   const db = await orbitdb.keyvalue("test3");

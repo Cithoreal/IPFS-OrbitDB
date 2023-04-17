@@ -3,7 +3,15 @@ import OrbitDB from "orbit-db";
 import fs from "fs";
 
 const ipfs = await IPFS.create();
-const orbitdb = await OrbitDB.createInstance(ipfs);
+const options = {directory: 'C:\\Users\\cdica\\.orbitdb'}
+const orbitdb = await OrbitDB.createInstance(ipfs, options);
+
+
+//Linking options
+
+//1 Each node links every following node
+//1: Link all nodes to all other nodes
+//3: Link each node only to the following node
 
 async function main() {
   const db = await orbitdb.keyvalue("test3");
@@ -27,12 +35,13 @@ async function main() {
       //console.log(nodes)
     }
   }
+  for (let i = 0; i < nodes.length; i++) {
+    if ((await db.get(nodes[i])) == null) {
+      await db.put(nodes[i], { values: [] });
+    }
+  }
   if (process.argv[2] == "-1" || process.argv[2] == "-2") {
     for (let i = 0; i < nodes.length; i++) {
-      if ((await db.get(nodes[i])) == null) {
-        await db.put(nodes[i], { values: [] });
-      }
-
       for (let j = i; j < nodes.length; j++) {
         if (i != j) {
           var node_values = await db.get(nodes[i]).values;
@@ -43,21 +52,31 @@ async function main() {
         }
       }
     }
-  } 
+  }
   if (process.argv[2] == "-2") {
-    for (let i = nodes.length - 1; i >=0; i--) {
-  
-        for (let j = i; j >= 0; j--) {
-          if (i != j) {
-            var node_values = await db.get(nodes[i]).values;
-            if (!node_values.includes(nodes[j])) {
-              node_values.push(nodes[j]);
-            }
-            await db.put(nodes[i], { values: node_values });
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      for (let j = i; j >= 0; j--) {
+        if (i != j) {
+          var node_values = await db.get(nodes[i]).values;
+          if (!node_values.includes(nodes[j])) {
+            node_values.push(nodes[j]);
           }
+          await db.put(nodes[i], { values: node_values });
         }
       }
     }
+  }
+  if (process.argv[2] == "-3") {
+    for (let i = 0; i < nodes.length; i++) {
+      if (i != nodes.length - 1) {
+        var node_values = await db.get(nodes[i]).values;
+        if (!node_values.includes(nodes[i + 1])) {
+          node_values.push(nodes[i + 1]);
+        }
+        await db.put(nodes[i], { values: node_values });
+      }
+    }
+  }
   //console.log(db.all)
 
   await db.close();
