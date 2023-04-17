@@ -14,7 +14,7 @@ const orbitdb = await OrbitDB.createInstance(ipfs, options);
 //3: Link each node only to the following node
 
 async function main() {
-  const db = await orbitdb.keyvalue("test3");
+  const db = await orbitdb.keyvalue("test");
   await db.load();
   var nodes = [];
   //Check each value to see if it is a file or not

@@ -1,14 +1,19 @@
 import * as IPFS from "ipfs-core";
 import OrbitDB from "orbit-db";
-import fs from "fs";
 
-const ipfs = await IPFS.create();
+const ipfs = await IPFS.create({silent: true});
 
 const options = {directory: 'C:\\Users\\cdica\\.orbitdb'}
 const orbitdb = await OrbitDB.createInstance(ipfs, options);
 
+const optionsToWrite = {
+  type: 'orbitdb',
+  write: ['orbitdb.identity.id']
+}
+
 async function main() {
-  const db = await orbitdb.keyvalue("test3");
+  const db = await orbitdb.keyvalue("test", optionsToWrite);
+  console.log(orbitdb.identity.id);
   await db.load();
   if (process.argv[2] == "-a" || process.argv[2] == "-all") {
     console.log(db.all);
