@@ -2,11 +2,28 @@ import * as IPFS from "ipfs-core";
 import OrbitDB from "orbit-db";
 import fs from "fs";
 
-const ipfs = await IPFS.create();
-const options = {directory: 'C:\\Users\\cdica\\.orbitdb'}
+const config = {
+  ipfs: {
+    preload: {
+      enabled: false
+    },
+    config: {
+      Addresses: {
+        Swarm: [
+          '/dns4/wrtc-star1.par.dwebops.pub/tcp/443/wss/p2p-webrtc-star/',
+          '/dns4/wrtc-star2.sjc.dwebops.pub/tcp/443/wss/p2p-webrtc-star/',
+          '/dns4/webrtc-star.discovery.libp2p.io/tcp/443/wss/p2p-webrtc-star/'
+        ]
+      }
+    }
+  }
+}
+const ipfs = await IPFS.create(config);
+const options = { directory: "C:\\Users\\cdica\\.orbitdb" };
 const orbitdb = await OrbitDB.createInstance(ipfs, options);
-
-
+const optionsToWrite = {
+  accessController: { write: [orbitdb.identity.id] },
+};
 //Linking options
 
 //1 Each node links every following node
@@ -14,7 +31,8 @@ const orbitdb = await OrbitDB.createInstance(ipfs, options);
 //3: Link each node only to the following node
 
 async function main() {
-  const db = await orbitdb.keyvalue("test");
+  const db = await orbitdb.keyvalue("test", optionsToWrite);
+  console.log(db.address.toString());
   await db.load();
   var nodes = [];
   //Check each value to see if it is a file or not
@@ -79,8 +97,8 @@ async function main() {
   }
   //console.log(db.all)
 
-  await db.close();
-  ipfs.stop();
+  //await db.close();
+  //await ipfs.stop();
 }
 
 function fileExists(filePath) {
@@ -91,4 +109,7 @@ function fileExists(filePath) {
     return false;
   }
 }
+
+
+
 main();
