@@ -1,30 +1,33 @@
-import * as IPFS from "ipfs-core";
-import OrbitDB from "orbit-db";
+import * as IPFS_CORE from "ipfs-core";
+import orbitdb from "orbit-db";
 import fs from "fs";
 //Create IPFS
 class IPFSOrbitDB {
-  constructor(Ipfs, OrbitDB) {
-    this.OrbitDB = OrbitDB;
-    this.Ipfs = Ipfs;
+
+  constructor () {
+    this.OrbitDB = orbitdb
+    this.Ipfs = IPFS_CORE
   }
 
   async create() {
+
     this.node = await this.Ipfs.create({
-      preload: { enabled: false },
-      repo: "./ipfs",
       EXPERIMENTAL: { pubsub: true },
-      config: {
-        Bootstrap: [],
-        Addresses: { Swarm: [] },
-      },
+      relay: { enabled: true, hop: { enabled: true, active: true } },
+      Discovery: {
+        MDNS: {
+          Enabled: false
+        }
+      }
     });
 
     this._init();
   }
 
   async _init() {
+
     const nodeInfo = await this.node.id();
-    this.orbitdb = await this.OrbitDB.createInstance(this.node);
+    this.orbitdb = await this.OrbitDB.createInstance(this.node, {directory: "C:\\Users\\cdica\\.orbitdb"});
     // differences between older apis which use publicKey are causing problems.
     this.defaultOptions = {
       accessController: { write: [this.orbitdb.identity.id] },
@@ -39,7 +42,10 @@ class IPFSOrbitDB {
       kvStoreOptions
     );
     await this.thoughtDictDB.load();
-
+    //console.log(await this.node.bootstrap.list())
+    //console.log(await this.node.swarm.localAddrs())
+    //console.log(await this.node.swarm.addrs());
+   // console.log(await this.node.swarm.peers())
     this.user = await this.orbitdb.kvstore("user", this.defaultOptions);
     await this.user.load();
     await this.user.set("ThoughtDictionary", this.thoughtDictDB.id);
@@ -53,9 +59,9 @@ class IPFSOrbitDB {
     this.peers = await this.orbitdb.keyvalue("peers", this.defaultOptions);
     await this.peers.load();
 
-    this.node.libp2p.on("peer:connect", this.handlePeerConnected.bind(this));
+    this.node.libp2p.addEventListener("peer:connect", (evt) => { this.handlePeerConnected.bind(this)}) 
     await this.node.pubsub.subscribe(
-      nodeInfo.id,
+      nodeInfo.id.toString(),
       this.handleMessageReceived.bind(this)
     );
 
@@ -67,19 +73,19 @@ class IPFSOrbitDB {
 
     // when the OrbitDB docstore has loaded, intercept this method to
     // carry out further operations.
-    this.onready();
+   // this.onready();
   }
 
   async onready() {
-    await NPP.connectToPeer("paste your other node's IPFS hash here");
-    NPP.ondbdiscovered = (db) => console.log(db.all);
+    await this.connectToPeer("12D3KooWGNNm7qG3TWk3ZmoDHf4UsKqaW7YbCJTMe664734iqzAN");
+    ondbdiscovered = (db) => console.log(db.all);
 
-    NPP.onpeeronline = console.log;
-    NPP.onpeernotfound = () => {
+    onpeeronline = console.log;
+    onpeernotfound = () => {
       throw e;
     };
 
-    NPP.queryCatalog();
+    queryCatalog();
   }
 
   async addToDB() {
@@ -212,7 +218,9 @@ class IPFSOrbitDB {
     return peers;
   }
 
-  async connectToPeer(multiaddr, protocol = "/p2p-circuit/ipfs/") {
+  async connectToPeer(multiaddr, protocol = "/dnsaddr/bootstrap.libp2p.io/p2p/") {
+    console.log("attempt connect to peer");
+    console.log(protocol + multiaddr);
     try {
       await this.node.swarm.connect(protocol + multiaddr);
     } catch (e) {
@@ -304,3 +312,7 @@ class IPFSOrbitDB {
     }, this.pieces.get(""));
   }
 }
+
+var node = new IPFSOrbitDB();
+await node.create();
+

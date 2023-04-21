@@ -25,6 +25,8 @@ const optionsToWrite = {
 async function main() {
   //Init
   const db = await orbitdb.keyvalue("test",optionsToWrite);
+  console.log(await ipfs.bootstrap.list())
+  console.log(await ipfs.swarm.peers())
   console.log(db.address.toString());
   await db.load();
   //End Init
