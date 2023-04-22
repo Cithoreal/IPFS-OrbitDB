@@ -13,13 +13,8 @@ class IPFSOrbitDB {
   async create() {
 
     this.node = await this.Ipfs.create({
+      silent: true,
       EXPERIMENTAL: { pubsub: true },
-      relay: { enabled: true, hop: { enabled: true, active: true } },
-      Discovery: {
-        MDNS: {
-          Enabled: false
-        }
-      }
     });
 
     this._init();
@@ -44,16 +39,16 @@ class IPFSOrbitDB {
     );
     await this.thoughtDictDB.load();
  
-    console.log(this.thoughtDictDB.all);
+    //console.log(this.thoughtDictDB.all);
     //console.log(await this.node.bootstrap.list())
     //console.log(await this.node.swarm.localAddrs())
     //console.log(await this.node.swarm.addrs());
    // console.log(await this.node.swarm.peers())
-
+    //  console.log(await this.node.id())
     this.user = await this.orbitdb.kvstore("user", this.defaultOptions);
     await this.user.load();
     await this.user.set("ThoughtDictionary", this.thoughtDictDB.id);
-
+     // console.log(this.user.all)
     await this.loadFixtureData({
       username: Math.floor(Math.random() * 1000000),
       ThoughtDictionary: this.thoughtDictDB.id,
@@ -62,8 +57,12 @@ class IPFSOrbitDB {
 
     this.peers = await this.orbitdb.keyvalue("peers", this.defaultOptions);
     await this.peers.load();
+    console.log(this.peers.all)
 
-    this.node.libp2p.addEventListener("peer:connect", (evt) => { this.handlePeerConnected.bind(this)}) 
+    //this.node.libp2p.addEventListener('peer:connect', (evt) => {
+    //  console.log('Connection established to:', evt.detail.remotePeer.toString())	// Emitted when a new connection has been created
+    //})
+    //this.node.libp2p.addEventListener("peer:connect", (evt) => { this.handlePeerConnected(evt.detail)}) 
     await this.node.pubsub.subscribe(
       nodeInfo.id.toString(),
       this.handleMessageReceived.bind(this)
@@ -79,12 +78,12 @@ class IPFSOrbitDB {
     // carry out further operations.
     this.onready();
 
-    await node.addToDB(['-3', "1", '2', '3']);
-     await node.getFromDB(['-a']);
+    //await node.addToDB(['-3', "1", '2', '3']);
+    // await node.getFromDB(['-a']);
   }
 
   async onready() {
-    await this.connectToPeer('12D3KooWBKAmJaPp1kP6BAzieTzaEnfteUicUaC3eiaUckFpBvwP', '/p2p-circuit/ipfs/');
+    await this.connectToPeer('12D3KooWCy7GVg3yCZogA8c5AHqmSEY2RhNHDembmgeHLJ4kge3u', "/ip4/192.168.1.28/tcp/4002/p2p/");
     this.ondbdiscovered = (db) => console.log(db.all);
 
     this.onpeeronline = console.log;
@@ -227,27 +226,35 @@ class IPFSOrbitDB {
   }
 
   async connectToPeer(address, protocol = "/dnsaddr/bootstrap.libp2p.io/p2p/") {
+   // var peerId = PeerId(address);
+   // console.log(peerId)
     var addr = multiaddr(protocol + address);
     console.log("attempt connect to peer");
-    console.log(addr);
+   console.log(addr);
     try {
       await this.node.swarm.connect(addr);
+      console.log("connected to peer");
+      var peers = await this.node.swarm.peers();
+      this.handlePeerConnected(address)
     } catch (e) {
       throw e;
     }
   }
 
   handlePeerConnected(ipfsPeer) {
-    const ipfsId = ipfsPeer.id._idB58String;
+    console.log(ipfsPeer)
+    console.log("Handle Peer Connected " + ipfsPeer);
+    //const ipfsId = ipfsPeer.id._idB58String;
 
     setTimeout(async () => {
-      await this.sendMessage(ipfsId, { user: this.user.id });
+      await this.sendMessage(ipfsPeer, { user: this.user.id });
     }, 2000);
 
     if (this.onpeerconnect) this.onpeerconnect(ipfsId);
   }
 
   async handleMessageReceived(msg) {
+    console.log("Handle Message Received");
     const parsedMsg = JSON.parse(msg.data.toString());
     const msgKeys = Object.keys(parsedMsg);
 
@@ -272,6 +279,7 @@ class IPFSOrbitDB {
     try {
       const msgString = JSON.stringify(message);
       const messageBuffer = this.getBuffer().from(msgString);
+      console.log("send message " + topic + " " + messageBuffer)
       await this.node.pubsub.publish(topic, messageBuffer);
     } catch (e) {
       throw e;
@@ -303,14 +311,16 @@ class IPFSOrbitDB {
   }
 
   async queryCatalog() {
+    console.log("Querying catalog...")
     const peerIndex = this.peers.all;
+    console.log(this.peers.all)
     const dbAddrs = Object.keys(peerIndex).map((key) => peerIndex[key].thoughtDictDB);
 
     const allThoughts = await Promise.all(
       dbAddrs.map(async (addr) => {
         const db = await this.orbitdb.open(addr);
         await db.load();
-
+        console.log(db.get(""));
         return db.get("");
       })
     );

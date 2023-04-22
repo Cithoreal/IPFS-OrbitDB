@@ -1,11 +1,11 @@
 {
   "type": "module",
-  "name": "js-ipfs-examples",
+  "name": "ipfs-orbitd",
   "version": "1.0.0",
   "private": "true",
-  "description": "Collection of opinionated and real-world examples of how you can use js-ipfs to build things",
+  "description": "Thought Bubbles Database",
   "keywords": [
-    "examples",
+    "Thought Bubbles",
     "js-ipfs"
   ],
   "homepage": "https://github.com/ipfs-examples/js-ipfs-examples#readme",
@@ -39,6 +39,6 @@
     "@multiformats/multiaddr": "^12.1.2",
     "orbit-db": "^0.29.0"
   },
-  "main": "add_to_ipfs_orbitdb.js",
+  "main": "IPFSOrbitDB.js",
   "author": ""
 }
