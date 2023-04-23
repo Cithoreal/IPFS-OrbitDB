@@ -100,8 +100,6 @@ dist
 
 # vuepress build output
 .vuepress/dist
-orbitdb/
-Scripts/orbitdb/
 # vuepress v2.x temp and cache directory
 .temp
 .cache
@@ -130,3 +128,7 @@ Scripts/orbitdb/
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+Scripts/ipfs/
+Scripts/orbitdb/
+ipfs/
+orbitdb/

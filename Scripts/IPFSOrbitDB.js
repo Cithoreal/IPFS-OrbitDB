@@ -1,7 +1,7 @@
 import * as IPFS_CORE from "ipfs-core";
 import orbitdb from "orbit-db";
 import fs from "fs";
-import { multiaddr } from 'multiaddr'
+import { multiaddr } from '@multiformats/multiaddr'
 //Create IPFS
 class IPFSOrbitDB {
 
@@ -11,10 +11,11 @@ class IPFSOrbitDB {
   }
 
   async create() {
-
+    
     this.node = await this.Ipfs.create({
       silent: true,
       EXPERIMENTAL: { pubsub: true },
+      repo: "./ipfs"
     });
 
     this._init();
@@ -23,7 +24,7 @@ class IPFSOrbitDB {
   async _init() {
 
     const nodeInfo = await this.node.id();
-    this.orbitdb = await this.OrbitDB.createInstance(this.node, {directory: "C:\\Users\\cdica\\.orbitdb"});
+    this.orbitdb = await this.OrbitDB.createInstance(this.node);
     // differences between older apis which use publicKey are causing problems.
     this.defaultOptions = {
       accessController: { write: [this.orbitdb.identity.id] },
@@ -38,7 +39,7 @@ class IPFSOrbitDB {
       kvStoreOptions
     );
     await this.thoughtDictDB.load();
- 
+    //await node.addToDB(['-3', "1", '2', '3']);
     //console.log(this.thoughtDictDB.all);
     //console.log(await this.node.bootstrap.list())
     //console.log(await this.node.swarm.localAddrs())
@@ -82,17 +83,17 @@ class IPFSOrbitDB {
     // await node.getFromDB(['-a']);
   }
 
-  async onready() {
+  /*async onready() {
     await this.connectToPeer('12D3KooWCy7GVg3yCZogA8c5AHqmSEY2RhNHDembmgeHLJ4kge3u', "/ip4/192.168.1.28/tcp/4002/p2p/");
     this.ondbdiscovered = (db) => console.log(db.all);
 
     this.onpeeronline = console.log;
-    this.onpeernotfound = () => {
-      throw e;
-    };
+    //this.onpeernotfound = (e) => {
+    //  throw e;
+    //};
 
     this.queryCatalog();
-  }
+  }*/
 
   async addToDB(thoughts) {
     var nodes = [];
@@ -313,14 +314,18 @@ class IPFSOrbitDB {
   async queryCatalog() {
     console.log("Querying catalog...")
     const peerIndex = this.peers.all;
-    console.log(this.peers.all)
-    const dbAddrs = Object.keys(peerIndex).map((key) => peerIndex[key].thoughtDictDB);
+
+    const dbAddrs = Object.keys(peerIndex).map((key) => peerIndex[key].ThoughtDictionary);
 
     const allThoughts = await Promise.all(
       dbAddrs.map(async (addr) => {
+        console.log("map")
+        console.log(addr)
         const db = await this.orbitdb.open(addr);
+        console.log("opened")
         await db.load();
-        console.log(db.get(""));
+        console.log("loaded")
+        console.log(db.all);
         return db.get("");
       })
     );
@@ -332,6 +337,8 @@ class IPFSOrbitDB {
   }
 }
 
-var node = new IPFSOrbitDB();
-await node.create();
+//var node = new IPFSOrbitDB();
+//await node.create();
 
+
+export default IPFSOrbitDB;
