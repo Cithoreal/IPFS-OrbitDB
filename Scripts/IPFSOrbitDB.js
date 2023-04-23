@@ -1,5 +1,6 @@
 import * as IPFS_CORE from "ipfs-core";
 import orbitdb from "orbit-db";
+import Identities from 'orbit-db-identity-provider'
 import fs from "fs";
 import { multiaddr } from '@multiformats/multiaddr'
 //Create IPFS
@@ -10,44 +11,37 @@ class IPFSOrbitDB {
     this.Ipfs = IPFS_CORE
   }
 
-  async create() {
+  async create(options = {}) {
     
     this.node = await this.Ipfs.create({
-      silent: true,
+      //silent: true,
       EXPERIMENTAL: { pubsub: true },
       repo: "./ipfs"
     });
 
-    this._init();
+    this._init(options);
   }
 
-  async _init() {
-
+  async _init(options = {}) {
+    const identity = options.identity || await Identities.createIdentity({ id: 'user' })
+  
     const nodeInfo = await this.node.id();
-    this.orbitdb = await this.OrbitDB.createInstance(this.node);
+    this.orbitdb = await this.OrbitDB.createInstance(this.node, {identity});
     // differences between older apis which use publicKey are causing problems.
-    this.defaultOptions = {
-      accessController: { write: [this.orbitdb.identity.id] },
-    };
-
+    this.defaultOptions = {accessController: { write: [this.orbitdb.identity.id] }};
+    console.log(this.orbitdb.identity.id)
     const kvStoreOptions = {
       ...this.defaultOptions,
+      indexBy: "hash",
     };
 
-    this.thoughtDictDB = await this.orbitdb.keyvalue(
-      "ThoughtDictionary",
-      kvStoreOptions
-    );
+    this.thoughtDictDB = await this.orbitdb.keyvalue("/orbitdb/zdpuAoZt74WLF5KrgoVJAR19QaZvk9i2cTgBdNfygm6BXZZRU/ThoughtDictionary",kvStoreOptions);
     await this.thoughtDictDB.load();
-    //await node.addToDB(['-3', "1", '2', '3']);
-    //console.log(this.thoughtDictDB.all);
-    //console.log(await this.node.bootstrap.list())
-    //console.log(await this.node.swarm.localAddrs())
-    //console.log(await this.node.swarm.addrs());
-   // console.log(await this.node.swarm.peers())
-    //  console.log(await this.node.id())
-    this.user = await this.orbitdb.kvstore("user", this.defaultOptions);
+    //console.log(this.thoughtDictDB.id)
+
+    this.user = await this.orbitdb.kvstore("/orbitdb/zdpuB2uRMZKpRXXm5EXvTG87fmRYJhBdV2ha9ugXs6fqRaf5k/user", this.defaultOptions);
     await this.user.load();
+    //console.log(this.user.id)
     await this.user.set("ThoughtDictionary", this.thoughtDictDB.id);
      // console.log(this.user.all)
     await this.loadFixtureData({
@@ -56,10 +50,11 @@ class IPFSOrbitDB {
       nodeId: nodeInfo.id,
     });
 
-    this.peers = await this.orbitdb.keyvalue("peers", this.defaultOptions);
+    this.peers = await this.orbitdb.keyvalue("/orbitdb/zdpuB2ZLhAUxM36N4CsAYC4fpweHJH1a1zenWwDRW2mT994Wm/peers", this.defaultOptions);
+    
     await this.peers.load();
-    console.log(this.peers.all)
-
+   // console.log(this.peers.all)
+   //console.log(this.peers.id)
     //this.node.libp2p.addEventListener('peer:connect', (evt) => {
     //  console.log('Connection established to:', evt.detail.remotePeer.toString())	// Emitted when a new connection has been created
     //})
@@ -68,12 +63,12 @@ class IPFSOrbitDB {
       nodeInfo.id.toString(),
       this.handleMessageReceived.bind(this)
     );
-
+/*
     this.peerConnectionInterval = setInterval(
       this.connectToPeers.bind(this),
       10000
     );
-    this.connectToPeers();
+    this.connectToPeers();*/
 
     // when the OrbitDB docstore has loaded, intercept this method to
     // carry out further operations.
@@ -226,7 +221,7 @@ class IPFSOrbitDB {
     return peers;
   }
 
-  async connectToPeer(address, protocol = "/dnsaddr/bootstrap.libp2p.io/p2p/") {
+  async connectToPeer(address, protocol = "") {
    // var peerId = PeerId(address);
    // console.log(peerId)
     var addr = multiaddr(protocol + address);
@@ -236,19 +231,20 @@ class IPFSOrbitDB {
       await this.node.swarm.connect(addr);
       console.log("connected to peer");
       var peers = await this.node.swarm.peers();
-      this.handlePeerConnected(address)
+      //this.handlePeerConnected(address)
     } catch (e) {
       throw e;
     }
   }
 
   handlePeerConnected(ipfsPeer) {
-    console.log(ipfsPeer)
+
     console.log("Handle Peer Connected " + ipfsPeer);
     //const ipfsId = ipfsPeer.id._idB58String;
 
     setTimeout(async () => {
-      await this.sendMessage(ipfsPeer, { user: this.user.id });
+      console.log({ user: this.user.id })
+      //await this.sendMessage(ipfsPeer, { user: this.user.id });
     }, 2000);
 
     if (this.onpeerconnect) this.onpeerconnect(ipfsId);
