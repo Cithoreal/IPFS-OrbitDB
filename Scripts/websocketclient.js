@@ -1,13 +1,11 @@
+//const net = require("net");
 import net from "net";
 const host = "127.0.0.1";
 const port = 5000;
 
 const client = net.createConnection(port, host, () => {
-  console.log("Connected");
-    var arr = process.argv.slice(1)
-    arr[0] = "get"
-    console.log(arr.toString())
-    client.write(arr.toString());
+    console.log("Connected");
+    client.write("Hey pretty kitty :3");
 });
 
 client.on("data", (data) => {
