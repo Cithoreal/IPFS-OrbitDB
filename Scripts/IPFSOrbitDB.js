@@ -32,16 +32,26 @@ class IPFSOrbitDB {
 
       socket.on("data", async (data) => {
         //console.log('Received: ${data}');
-
+        console.log(data);
         data = data.toString().split(",");
         // var result = "Hey you"
         console.log(data);
         //socket.write('Received: ' + data);
-
-        if (data[0] == "get") {
-          var result = await this.getFromDB(data.slice(1));
-          console.log(result.toString());
-          socket.write(result.toString());
+        switch (data[0]) {
+          case "get":
+            var result = await this.getFromDB(data.slice(1));
+            console.log("sending: " + result);
+            if (result == "") result = "[]";
+            socket.write(result);
+            break;
+          case "post":
+            await this.addToDB(data.slice(1));
+            socket.write("Added to DB");
+            break;
+          default:
+            console.log("Invalid command");
+            socket.write("Invalid command");
+          //Going to want a delete function for removing specific values
         }
       });
 
@@ -61,8 +71,6 @@ class IPFSOrbitDB {
     server.listen(port, () => {
       console.log(`TCP socket server is running on port: ${port}`);
     });
-
-
   }
 
   async _initDBs() {
@@ -122,18 +130,19 @@ class IPFSOrbitDB {
   }
 
   async addToDB(thoughts) {
+    console.log("adding to db: " + thoughts);
     var nodes = [];
     //Check each value to see if it is a file or not
     //Add file conent ids to the value array
-    for (let i = 1; i < thoughts.length; i++) {
+    for (let i = 0; i < thoughts.length; i++) {
       nodes.push(thoughts[i]);
       if (this.fileExists(thoughts[i])) {
         console.log("adding file to ipfs");
-        const file = await ipfs.add({
+        const file = await this.node.add({
           path: thoughts[i],
           content: fs.createReadStream(thoughts[i]),
         });
-        await ipfs.pin.add(file.cid);
+        await this.node.pin.add(file.cid);
         //console.log(file.cid.toString())
         nodes.push(thoughts[i].substring(0, thoughts[i].indexOf(".")));
         nodes.push(thoughts[i].substring(thoughts[i].indexOf(".")));
@@ -151,6 +160,7 @@ class IPFSOrbitDB {
         for (let j = i; j < nodes.length; j++) {
           if (i != j) {
             var node_values = await this.thoughtDictDB.get(nodes[i]).values;
+            console.log(node_values);
             if (!node_values.includes(nodes[j])) {
               node_values.push(nodes[j]);
             }
@@ -188,36 +198,63 @@ class IPFSOrbitDB {
   fileExists(filePath) {
     try {
       fs.accessSync(filePath);
+      if (filePath.indexOf(".") == -1) {
+        console.log(filePath + " is a directory");
+        return false;
+      }
+      console.log(filePath + " is a file")
       return true;
     } catch (error) {
       return false;
     }
   }
-  
+
   async getFromDB(thoughts) {
-    let toString = obj => Object.entries(obj).map(([k, v]) => `${k}: ${v}`).join(', ');
-    if (thoughts[0] == "-a" || thoughts[0] == "-all") {
-      var all = toString(this.thoughtDictDB.all)
-      return all;
-    }
+    console.log(thoughts);
+    let toString = (obj) =>
+      Object.entries(obj)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(", ");
     var node_dictionary = {};
 
-    for (let i = 0; i < thoughts.length; i++) {
+    for (let i = 1; i < thoughts.length; i++) {
       if ((await this.thoughtDictDB.get(thoughts[i])) != null) {
         node_dictionary[thoughts[i]] = await this.thoughtDictDB.get(thoughts[i])
           .values;
       } else {
-        node_dictionary[thoughts[i]] = [];
+        node_dictionary[thoughts[i]] = "[]";
       }
     }
 
-    console.log(node_dictionary);
+    if (thoughts[0] == "-1") {
+      node_dictionary = this.getIntersection(node_dictionary);
+    }
+
+    //console.log(node_dictionary);
     // await this.thoughtDictDB.close();
 
     return toString(node_dictionary);
   }
 
-  async getAllFromDB() {}
+  getIntersection(dict) {
+    //Get the intersection of arrays in the dictionary's values
+    console.log("getting intersection");
+    var intersection = [];
+    // for (keyValues in dictionary.k)
+    for (var n = 0; n < dict[Object.keys(dict)[0]].length; n++) {
+      var value = dict[Object.keys(dict)[0]][n];
+      var exists = true;
+      for (var i = 1; i < Object.keys(dict).length; i++) {
+        if (!dict[Object.keys(dict)[i]].includes(value)) {
+          exists = false;
+          break;
+        }
+      }
+      if (exists) intersection.push(value);
+    }
+    console.log("intersection: " + intersection)
+    return {"values" : intersection};
+  }
 
   async deleteProfileField(key) {
     const cid = await this.user.del(key);
@@ -283,20 +320,20 @@ class IPFSOrbitDB {
   async handleMessageReceived(msg) {
     console.log("Handle Message Received");
     console.log(msg);
-    console.log(parsedMsg)
+    console.log(parsedMsg);
     const parsedMsg = JSON.parse(msg.data.toString());
     const msgKeys = Object.keys(parsedMsg);
-    console.log(msgKeys)
-    console.log(msgKeys[0])
+    console.log(msgKeys);
+    console.log(msgKeys[0]);
     switch (msgKeys[0]) {
       case "user":
-        console.log(parsedMsg.user)
-        console.log(await this.orbitdb.open(parsedMsg.user))
+        console.log(parsedMsg.user);
+        console.log(await this.orbitdb.open(parsedMsg.user));
         var peer = await this.orbitdb.open(parsedMsg.user);
         peer.events.on("replicated", async () => {
-          console.log("replicated")
+          console.log("replicated");
           if (peer.get("ThoughtDictionary")) {
-            console.log(peer.get("ThoughtDictionary"))
+            console.log(peer.get("ThoughtDictionary"));
             await this.peers.set(peer.id, peer.all);
             this.ondbdiscovered && this.ondbdiscovered(peer);
           }
