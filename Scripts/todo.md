@@ -5,3 +5,6 @@
     - [x] check every argument to see if it is a file
     - [ ] check every argument to see if it is a url
 
+Pipeline:
+
+Start the core IPFSOrbitDB node on default ports, do nothing but listen for messages
