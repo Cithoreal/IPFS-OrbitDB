@@ -37,6 +37,7 @@
   "dependencies": {
     "@libp2p/webrtc-star-signalling-server": "^2.0.1",
     "@multiformats/multiaddr": "^12.1.2",
+    "helia": "^1.2.1",
     "ipfs": "^0.66.0",
     "orbit-db": "^0.29.0",
     "websocket": "^1.0.34"

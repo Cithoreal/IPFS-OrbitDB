@@ -4,5 +4,6 @@ const ipfsOrbitDB = new IPFSOrbitDB();
 ipfsOrbitDB.create();
 
 ipfsOrbitDB.onready = async () => {
+    console.log("ipfsOrbitDB.onready");
 }
 //console.log()

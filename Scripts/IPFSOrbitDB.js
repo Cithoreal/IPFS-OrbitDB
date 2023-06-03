@@ -28,14 +28,14 @@ class IPFSOrbitDB {
     const port = 5000;
 
     const server = net.createServer((socket) => {
-      console.log("Client connected");
+      //console.log("Client connected");
 
       socket.on("data", async (data) => {
         //console.log('Received: ${data}');
-        console.log(data);
+        //console.log(data);
         data = data.toString().split(",");
         // var result = "Hey you"
-        console.log(data);
+        //console.log(data);
         //socket.write('Received: ' + data);
         switch (data[0]) {
           case "get":
@@ -45,8 +45,18 @@ class IPFSOrbitDB {
             socket.write(result);
             break;
           case "post":
+            //console.log("adding to db: " + data.slice(1));
+            //console.log(data.slice(1))
             await this.addToDB(data.slice(1));
             socket.write("Added to DB");
+            break;
+          case "clear":
+            await this.clearDB();
+            socket.write("Cleared");
+            break;
+          case "all":
+            console.log(this.thoughtDictDB.all);
+            socket.write(this.thoughtDictDB.all.toString());
             break;
           default:
             console.log("Invalid command");
@@ -56,7 +66,7 @@ class IPFSOrbitDB {
       });
 
       socket.on("end", () => {
-        console.log("Client disconnected");
+        //console.log("Client disconnected");
       });
 
       socket.on("error", (error) => {
@@ -71,6 +81,8 @@ class IPFSOrbitDB {
     server.listen(port, () => {
       console.log(`TCP socket server is running on port: ${port}`);
     });
+
+   // process.on('warning', e => console.warn(e.stack));
   }
 
   async _initDBs() {
@@ -90,6 +102,7 @@ class IPFSOrbitDB {
     //console.log(this.thoughtDictDB.id)
     //this.thoughtDictDB.set("test", "test")
     this.user = await this.orbitdb.keyvalue("user", this.defaultOptions);
+
     await this.user.load();
     //console.log(this.user.id)
     //console.log(this.user.all)
@@ -113,10 +126,12 @@ class IPFSOrbitDB {
     //  console.log('Connection established to:', evt.detail.remotePeer.toString())	// Emitted when a new connection has been created
     //})
     //node.libp2p.addEventListener("peer:connect", (evt) => { this.handlePeerConnected(evt.detail)})
+
     await this.node.pubsub.subscribe(
       nodeInfo.id.toString(),
       this.handleMessageReceived.bind(this)
     );
+
     /*
     this.peerConnectionInterval = setInterval(
       this.connectToPeers.bind(this),
@@ -126,15 +141,26 @@ class IPFSOrbitDB {
 
     // when the OrbitDB docstore has loaded, intercept this method to
     // carry out further operations.
+
     this.onready();
   }
 
+  async clearDB(){
+    //Loop through all values in the thought dictionary
+    //Clear the value from the database
+    for (const [key, value] of Object.entries(this.thoughtDictDB.all)) {
+      //console.log(key, value);
+      await this.thoughtDictDB.del(key);
+    }
+    console.log(this.thoughtDictDB.all)
+  }
+
   async addToDB(thoughts) {
-    console.log("adding to db: " + thoughts);
+    //console.log("adding to db: " + thoughts);
     var nodes = [];
     //Check each value to see if it is a file or not
     //Add file conent ids to the value array
-    for (let i = 0; i < thoughts.length; i++) {
+    for (let i = 1; i < thoughts.length; i++) {
       nodes.push(thoughts[i]);
       if (this.fileExists(thoughts[i])) {
         console.log("adding file to ipfs");
@@ -150,17 +176,21 @@ class IPFSOrbitDB {
         //console.log(nodes)
       }
     }
+    //console.log(nodes)
     for (let i = 0; i < nodes.length; i++) {
+     // console.log(nodes[i])
       if ((await this.thoughtDictDB.get(nodes[i])) == null) {
+       // console.log("adding node: " + nodes[i]);
         await this.thoughtDictDB.put(nodes[i], { values: [] });
       }
     }
+
     if (thoughts[0] == "-1" || thoughts[0] == "-2") {
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i; j < nodes.length; j++) {
           if (i != j) {
             var node_values = await this.thoughtDictDB.get(nodes[i]).values;
-            console.log(node_values);
+            //console.log(node_values);
             if (!node_values.includes(nodes[j])) {
               node_values.push(nodes[j]);
             }
@@ -210,7 +240,8 @@ class IPFSOrbitDB {
   }
 
   async getFromDB(thoughts) {
-    console.log(thoughts);
+   // console.log(await this.thoughtDictDB.all)
+    //console.log(thoughts);
     let toString = (obj) =>
       Object.entries(obj)
         .map(([k, v]) => `${k}: ${v}`)
@@ -238,7 +269,7 @@ class IPFSOrbitDB {
 
   getIntersection(dict) {
     //Get the intersection of arrays in the dictionary's values
-    console.log("getting intersection");
+    //console.log("getting intersection");
     var intersection = [];
     // for (keyValues in dictionary.k)
     for (var n = 0; n < dict[Object.keys(dict)[0]].length; n++) {
@@ -252,7 +283,7 @@ class IPFSOrbitDB {
       }
       if (exists) intersection.push(value);
     }
-    console.log("intersection: " + intersection)
+    //console.log("intersection: " + intersection)
     return {"values" : intersection};
   }
 
